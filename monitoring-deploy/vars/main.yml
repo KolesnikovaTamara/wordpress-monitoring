@@ -1,0 +1,9 @@
+workdir: /home/{{ user }}/monitoring
+db_container: db
+db_port: 3306
+wordpress_container: wordpress
+db_root_password: "{{ vault_db_root_password }}"
+db_name: "{{ vault_db_name }}"
+db_exporter_user: "{{ vault_db_exporter_user }}"
+db_exporter_password: "{{ vault_db_exporter_password }}"
+grafana_password: "{{ vault_grafana_password }}"

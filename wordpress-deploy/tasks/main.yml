@@ -1,0 +1,76 @@
+- name: Include variables
+  include_vars:
+    dir: 'vars'
+
+- name: Check workdir directory exists
+  stat:
+    path: "{{ workdir }}"
+  register: stat_workdir
+
+- name: Check docker-compose.yml exists
+  stat:
+    path: "{{ workdir }}/docker-compose.yml"
+  register: file_stat
+
+- name: docker-compose down
+  shell: "docker-compose rm -v"
+  args:
+      chdir: "{{ workdir }}"
+  when: file_stat.stat.exists
+
+- name: delete old workdir folder
+  file:
+    path: "{{ workdir }}"
+    state: absent
+  when:
+    - stat_workdir.stat.exists
+
+- name: create workdir folder
+  file:
+    path: "{{ workdir }}"
+    state: directory
+
+- name: Copy docker-compose template
+  template:
+    src: docker-compose.yml
+    dest: "{{ workdir }}/docker-compose.yml"
+
+- name: Copy database init script
+  template:
+    src: create-exporter-user.sql
+    dest: "{{ workdir }}/create-exporter-user.sql"
+    mode: 0755
+
+- name: Copy status.conf for Apache
+  template:
+    src: status.conf
+    dest: "{{ workdir }}/status.conf"
+
+- name: Copy htaccess.conf for Apache
+  template:
+    src: htaccess.conf
+    dest: "{{ workdir }}/htaccess.conf"
+
+- block:
+    - name: docker-compose up
+      shell: "docker-compose up -d"
+      args:
+        chdir: "{{ workdir }}"
+
+    - name: check deployment result
+      uri:
+        url: "http://0.0.0.0:{{ wordpress_port }}"
+      register: response
+      until: response.status == 200
+      retries: 10
+      delay: 20
+
+  rescue:
+    - name: Get container logs
+      shell: "docker logs {{ wordpress_container }}"
+      register: application_logs
+
+    - debug: msg="{{ application_logs.stdout_lines }}"
+
+    - fail:
+        msg: "Wordpress startup failed"

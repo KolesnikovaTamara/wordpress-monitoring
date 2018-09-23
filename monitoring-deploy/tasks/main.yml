@@ -1,0 +1,54 @@
+- name: Include variables
+  include_vars:
+    dir: 'vars'
+
+- name: Check workdir directory exists
+  stat:
+    path: "{{ workdir }}"
+  register: stat_workdir
+
+- name: Check docker-compose.yml exists
+  stat:
+    path: "{{ workdir }}/docker-compose.yml"
+  register: file_stat
+
+- name: docker-compose down
+  shell: "docker-compose rm -v"
+  args:
+      chdir: "{{ workdir }}"
+  when: file_stat.stat.exists
+
+- name: delete old workdir folder
+  file:
+    path: "{{ workdir }}"
+    state: absent
+  when:
+    - stat_workdir.stat.exists
+
+- name: create workdir folder
+  file:
+    path: "{{ workdir }}"
+    state: directory
+
+- name: Copy configuration files
+  copy:
+    src: "{{ role_path }}/files/"
+    dest: "{{ workdir }}"
+
+- name: copy docker-compose template
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ workdir }}/docker-compose.yml"
+
+- name: docker-compose up
+  shell: "docker-compose up -d"
+  args:
+    chdir: "{{ workdir }}"
+
+- name: check deployment result
+  uri:
+    url: "http://0.0.0.0:3000"
+    register: response
+    until: response.status == 200
+    retries: 10
+    delay: 20

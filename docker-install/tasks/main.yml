@@ -1,0 +1,73 @@
+- name: Add Docker GPG key.
+  rpm_key:
+    key: https://download.docker.com/linux/centos/gpg
+    state: present
+
+- name: Add Docker repository.
+  get_url:
+    url: "{{ docker_yum_repo_url }}"
+    dest: '/etc/yum.repos.d/docker-{{ docker_edition }}.repo'
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Install container-selinux package
+  package:
+    name: "{{ container_selinux_package }}"
+    state: present
+
+- name: Install Docker.
+  package:
+    name: "{{ docker_package }}"
+    state: present
+
+- name: Ensure Docker is started and enabled at boot.
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Сheck if pip is already installed
+  command: "pip --version"
+  ignore_errors: true
+  register: pip_is_installed
+  changed_when: false
+
+- block:
+    - name: download get-pip.py
+      get_url:
+        url: https://bootstrap.pypa.io/get-pip.py
+        dest: /tmp
+
+    - name: install pip
+      command: "python /tmp/get-pip.py"
+
+    - name: delete get-pip.py
+      file:
+        state: absent
+        path: /tmp/get-pip.py
+
+  when: pip_is_installed.rc != 0
+
+- name: Install docker-py for ansible module
+  pip:
+    name: docker-py
+    state: present
+
+- name: Install Docker Compose
+  get_url:
+    url: "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-Linux-x86_64"
+    dest: "/usr/local/bin/docker-compose"
+    mode: 0755
+
+- name: Create symlink for docker-compose
+  file:
+    src: "/usr/local/bin/docker-compose"
+    dest: "/usr/bin/docker-compose"
+    state: link
+
+- name: Add user to docker group
+  user:
+    name: "{{ user }}"
+    group: docker
+    append: yes

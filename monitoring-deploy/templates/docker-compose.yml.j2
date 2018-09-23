@@ -1,0 +1,84 @@
+version: '3.3'
+
+services:
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - "9090:9090"
+    networks:
+      - prometheus_default
+
+  node-exporter:
+    container_name: node-exporter
+    image: prom/node-exporter:latest
+    restart: unless-stopped
+    networks:
+      - prometheus_default
+
+  apache-exporter:
+    container_name: apache-exporter
+    image: lusotycoon/apache-exporter:latest
+    restart: unless-stopped
+    networks:
+      - wordpress_default
+      - prometheus_default
+    ports:
+        - "9117:9117"
+    command:
+      - '--scrape_uri=http://{{ wordpress_container }}/server-status/?auto'
+
+  db-exporter:
+    container_name: db-exporter
+    image: prom/mysqld-exporter
+    restart: unless-stopped
+    networks:
+      - wordpress_default
+      - prometheus_default
+    environment:
+       - DATA_SOURCE_NAME=root:{{ db_root_password }}@({{ db_container }}:{{ db_port }})/{{ db_name }}
+
+  cadvisor:
+    container_name: cadvisor
+    image: google/cadvisor:latest
+    restart: unless-stopped
+    container_name: cadvisor
+    networks:
+      - prometheus_default
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    environment:
+       - GF_SECURITY_ADMIN_PASSWORD={{ grafana_password }}
+    volumes:
+       - grafana_data:/var/lib/grafana
+       - ./grafana:/etc/grafana/provisioning
+    depends_on:
+       - prometheus
+    ports:
+       - "3000:3000"
+    networks:
+      - prometheus_default
+
+volumes:
+  prometheus_data: {}
+  grafana_data: {}
+
+networks:
+  prometheus_default:
+  wordpress_default:
+    external: true

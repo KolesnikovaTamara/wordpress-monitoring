@@ -1,0 +1,15 @@
+workdir: /home/ec2-user/wordpress
+db_container: db
+db_image: mysql
+db_tag: latest
+db_port: 3306
+wordpress_container: wordpress
+wordpress_image: wordpress
+wordpress_tag: latest
+wordpress_port: 80
+db_root_password: "{{ vault_db_root_password }}"
+db_name: "{{ vault_db_name }}"
+db_user: "{{ vault_db_user }}"
+db_password: "{{ vault_db_password }}"
+db_exporter_user: "{{ vault_db_exporter_user }}"
+db_exporter_password: "{{ vault_db_exporter_password }}"

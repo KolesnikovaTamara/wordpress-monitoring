@@ -1,0 +1,5 @@
+docker_edition: 'ce'
+docker_package: "docker-{{ docker_edition }}"
+docker_yum_repo_url: https://download.docker.com/linux/centos/docker-{{ docker_edition }}.repo
+container_selinux_package: http://mirror.centos.org/centos/7/extras/x86_64/Packages/container-selinux-2.42-1.gitad8f0f7.el7.noarch.rpm
+docker_compose_version: '1.14.0'

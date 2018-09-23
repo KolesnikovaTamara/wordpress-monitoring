@@ -1,0 +1,59 @@
+groups:
+- name: alert_rules
+  rules:      
+  - alert: ExporterDown
+    expr: up == 0
+    for: 5m
+    labels:
+      severity: page
+    annotations:
+      summary: "Instance {{ $labels.instance }} down"
+      description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 5 minutes."
+
+  - alert: DatabaseDown
+    expr: mysql_up == 0
+    for: 5m
+    labels:
+      severity: page
+
+  - alert: ApacheDown
+    expr: apache_up == 0
+    for: 5m
+    labels:
+      severity: page
+
+  - alert: NodeCPUUsage
+    expr: (100 - (avg by (instance) (irate(node_cpu{name="node-exporter",mode="idle"}[5m])) * 100)) > 75
+    for: 2m
+    labels:
+      severity: page
+    annotations:
+      summary: "{{ $labels.instance }}: High CPU usage detected"
+      description: "{{ $labels.instance }}: CPU usage is above 75% (current value is: {{ $value }})"
+
+  - alert: NodeLoadAverage
+    expr: ((node_load5 / count without (cpu, mode) (node_cpu{mode="system"})) > 1)
+    for: 2m
+    labels:
+      severity: page
+    annotations:
+      summary: "{{ $labels.instance }}: High LA detected"
+      description: "{{ $labels.instance }}: LA is high"
+
+  - alert: NodeLowRootDisk
+    expr: ((node_filesystem_size{mountpoint="/root-disk"} - node_filesystem_free{mountpoint="/root-disk"} ) / node_filesystem_size{mountpoint="/root-disk"} * 100) > 75
+    for: 2m
+    labels:
+      severity: page
+    annotations:
+      summary: "{{ $labels.instance }}: Low root disk space"
+      description: "{{ $labels.instance }}: Root disk usage is above 75% (current value is: {{ $value }})"
+
+  - alert: NodeMemoryUsage
+    expr: (((node_memory_MemTotal-node_memory_MemFree-node_memory_Cached)/(node_memory_MemTotal)*100)) > 75
+    for: 2m
+    labels:
+      severity: page
+    annotations:
+      summary: "{{ $labels.instance }}: High memory usage detected"
+      description: "{{ $labels.instance }}: Memory usage is above 75% (current value is: {{ $value }})"

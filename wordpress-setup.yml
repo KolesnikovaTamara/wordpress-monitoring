@@ -1,0 +1,7 @@
+- name: Setup wordpress with monitoring
+  hosts: wordpress
+  become: true
+  roles:
+    - docker-install
+    - wordpress-deploy
+    - monitoring-deploy
